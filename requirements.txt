@@ -1,0 +1,4 @@
+seleniumbase==4.34.15
+fastapi
+uvicorn
+pydantic
