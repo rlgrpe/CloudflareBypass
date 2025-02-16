@@ -27,7 +27,7 @@ class CloudflareBypasser:
     def bypass(self):
         try_count = 0
 
-        with SB(uc=True, proxy=self.proxy, xvfb=True) as sb:
+        with SB(uc=True, proxy=self.proxy, multi_proxy=True, xvfb=True) as sb:
             sb.activate_cdp_mode(self.url)
 
             while not self.is_bypassed(sb):
