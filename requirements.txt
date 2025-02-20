@@ -2,3 +2,4 @@ seleniumbase==4.34.15
 fastapi
 uvicorn
 pydantic
+PyAutoGUI=0.9.54
