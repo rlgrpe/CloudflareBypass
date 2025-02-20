@@ -25,7 +25,7 @@ logger = logging.getLogger("myapp")
 async def lifespan(app: FastAPI):
     # --- Startup logic ---
     # Create a custom ThreadPoolExecutor with an increased max_workers value
-    executor = ThreadPoolExecutor(max_workers=32)
+    executor = ThreadPoolExecutor()
     loop = asyncio.get_running_loop()
     loop.set_default_executor(executor)
 
