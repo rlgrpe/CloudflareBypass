@@ -20,31 +20,17 @@ os.environ.setdefault("TERM", "xterm-256color")
 
 logger = logging.getLogger("myapp")
 
+EXECUTOR = ThreadPoolExecutor(max_workers=1)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # --- Startup logic ---
-    # Create a custom ThreadPoolExecutor with an increased max_workers value
-    executor = ThreadPoolExecutor()
-    loop = asyncio.get_running_loop()
-    loop.set_default_executor(executor)
-
     try:
         yield
     finally:
         # --- Shutdown logic ---
         # Cancel all pending tasks except the current one
-        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-        if tasks:
-            for task in tasks:
-                task.cancel()
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for result in results:
-                if isinstance(result, asyncio.CancelledError):
-                    continue  # Suppress cancellation errors
-                elif isinstance(result, Exception):
-                    logger.error("Task finished with exception: %s", result)
-        executor.shutdown(wait=False)
+        EXECUTOR.shutdown(wait=False)
 
 
 app = FastAPI(lifespan=lifespan)
@@ -88,7 +74,9 @@ async def get_cookies(request: Request, url: str, retries: int = 5, proxy: str =
         # Pass the request_id into the CloudflareBypasser for consistent logging.
         driver = CloudflareBypasser(proxy, url, max_retries=retries, request_id=request_id)
         # Run the blocking bypass method in a thread to allow concurrency.
-        user_agent, cookies = await asyncio.to_thread(driver.bypass)
+        future = EXECUTOR.submit(driver.bypass)
+        user_agent, cookies = await asyncio.wrap_future(future)
+
         cookies = json.dumps(cookies)
         return CookieResponse(cookies=cookies, user_agent=user_agent)
     except Exception as e:
