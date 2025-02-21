@@ -1,16 +1,16 @@
 import asyncio
+import json
 import logging.config
 import os
 import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
-from typing import Dict
 from urllib.parse import urlparse
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Json
 
 import logging_config
 from client import CloudflareBypasser
@@ -51,7 +51,7 @@ app = FastAPI(lifespan=lifespan)
 
 
 class CookieResponse(BaseModel):
-    cookies: Dict[str, str]
+    cookies: Json
     user_agent: str
 
 
@@ -89,7 +89,7 @@ async def get_cookies(request: Request, url: str, retries: int = 5, proxy: str =
         driver = CloudflareBypasser(proxy, url, max_retries=retries, request_id=request_id)
         # Run the blocking bypass method in a thread to allow concurrency.
         user_agent, cookies = await asyncio.to_thread(driver.bypass)
-        cookies = {cookie.get("name", ""): cookie.get("value", " ") for cookie in cookies}
+        cookies = json.dumps(cookies)
         return CookieResponse(cookies=cookies, user_agent=user_agent)
     except Exception as e:
         logger.error(f"[{request_id}] Error: {str(e)}")
